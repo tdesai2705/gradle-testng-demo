@@ -66,7 +66,7 @@ spec:
                 container('python') {
                     sh '''
                         apt-get update -qq
-                        apt-get install -y --no-install-recommends git >/dev/null
+                        apt-get install -y --no-install-recommends git default-jre-headless >/dev/null
                         pip install --no-cache-dir "smart-tests-cli~=2.0"
                         smart-tests --version
                     '''
