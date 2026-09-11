@@ -116,5 +116,45 @@ spec:
                 }
             }
         }
+
+        stage('Approach B: launchable-testng plugin subset') {
+            steps {
+                container('python') {
+                    withCredentials([string(credentialsId: 'smart-tests-token-ptsv2', variable: 'SMART_TESTS_TOKEN')]) {
+                        sh '''
+                            smart-tests record build --build ${BUILD_TAG}-plugin --source .
+                            smart-tests record session --build ${BUILD_TAG}-plugin --test-suite gradle-testng-plugin-approach > session-b.txt
+                            echo "=== session (approach B) ==="
+                            cat session-b.txt
+                            smart-tests --log-level audit subset gradle --session @session-b.txt --target 40% --bare src/test/java > subset-b.txt 2> subset_b_stderr.log
+                            echo "=== subset-b.txt content (bare class names) ==="
+                            cat subset-b.txt
+                            echo "=== audit log ==="
+                            cat subset_b_stderr.log
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Approach B: Run via launchable-testng plugin (SMART_TESTS_ env var)') {
+            steps {
+                container('gradle') {
+                    sh '''
+                        rm -rf build/test-results build/reports
+                        export SMART_TESTS_SUBSET_FILE_PATH=$PWD/subset-b.txt
+                        echo "=== Env var set: SMART_TESTS_SUBSET_FILE_PATH=$SMART_TESTS_SUBSET_FILE_PATH ==="
+                        cat subset-b.txt
+                        gradle test --no-daemon --rerun-tasks
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'echo "=== Tests actually executed (Approach B, new env var) ===" && ls build/test-results/test/*.xml 2>/dev/null | wc -l'
+                    junit 'build/test-results/test/*.xml'
+                }
+            }
+        }
     }
 }

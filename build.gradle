@@ -8,6 +8,11 @@ repositories {
 
 dependencies {
     testImplementation 'org.testng:testng:7.9.0'
+    // Approach B: real Gradle dependency for Smart Tests' TestNG runtime-filtering
+    // mechanism (as opposed to the standalone CLI used in Approach A).
+    // testRuntimeOnly is the modern (Gradle 7+) replacement for the deprecated
+    // 'testRuntime' configuration shown in the official docs.
+    testRuntimeOnly 'com.launchableinc:launchable-testng:1.2.1'
 }
 
 test {
