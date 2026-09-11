@@ -29,6 +29,13 @@ spec:
     resources:
       requests: { cpu: "200m", memory: "512Mi" }
       limits: { cpu: "1", memory: "1536Mi" }
+  - name: python
+    image: python:3.13-slim
+    command: [sleep]
+    args: [99d]
+    resources:
+      requests: { cpu: "10m", memory: "256Mi" }
+      limits: { cpu: "500m", memory: "512Mi" }
 """
         }
     }
@@ -49,6 +56,60 @@ spec:
             }
             post {
                 always {
+                    junit 'build/test-results/test/*.xml'
+                }
+            }
+        }
+
+        stage('Install Smart Tests CLI') {
+            steps {
+                container('python') {
+                    sh '''
+                        pip install --no-cache-dir "smart-tests-cli~=2.0"
+                        smart-tests --version
+                    '''
+                }
+            }
+        }
+
+        stage('Approach A: Standalone CLI subset') {
+            steps {
+                container('python') {
+                    withCredentials([string(credentialsId: 'smart-tests-token-ptsv2', variable: 'SMART_TESTS_TOKEN')]) {
+                        sh '''
+                            git config --global --add safe.directory ${WORKSPACE}
+                            smart-tests verify || true
+                            smart-tests record build --build ${BUILD_TAG}-cli --source .
+                            smart-tests record session --build ${BUILD_TAG}-cli --test-suite gradle-testng-cli-approach > session.txt
+                            echo "=== session ==="
+                            cat session.txt
+                            smart-tests --log-level audit subset gradle --session @session.txt --target 100% src/test/java > subset.txt 2> subset_stderr.log
+                            echo "=== subset.txt content ==="
+                            cat subset.txt
+                            echo "=== audit log ==="
+                            cat subset_stderr.log
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Approach A: Run subset via Gradle') {
+            steps {
+                container('gradle') {
+                    sh '''
+                        echo "=== running: gradle test $(cat subset.txt) ==="
+                        gradle test --no-daemon $(cat subset.txt)
+                    '''
+                }
+            }
+            post {
+                always {
+                    container('python') {
+                        withCredentials([string(credentialsId: 'smart-tests-token-ptsv2', variable: 'SMART_TESTS_TOKEN')]) {
+                            sh 'smart-tests record tests gradle --session @session.txt --no-build ./build/test-results/test/ || true'
+                        }
+                    }
                     junit 'build/test-results/test/*.xml'
                 }
             }
