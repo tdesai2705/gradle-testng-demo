@@ -109,7 +109,7 @@ spec:
                 always {
                     container('python') {
                         withCredentials([string(credentialsId: 'smart-tests-token-ptsv2', variable: 'SMART_TESTS_TOKEN')]) {
-                            sh 'smart-tests record tests gradle --session @session.txt --no-build ./build/test-results/test/ || true'
+                            sh 'smart-tests record tests gradle --session @session.txt ./build/test-results/test/*.xml'
                         }
                     }
                     junit 'build/test-results/test/*.xml'
