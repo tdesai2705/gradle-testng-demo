@@ -156,5 +156,25 @@ spec:
                 }
             }
         }
+
+        stage('Approach B: Run via launchable-testng plugin (legacy LAUNCHABLE_ env var)') {
+            steps {
+                container('gradle') {
+                    sh '''
+                        rm -rf build/test-results build/reports
+                        export LAUNCHABLE_SUBSET_FILE_PATH=$PWD/subset-b.txt
+                        echo "=== Env var set: LAUNCHABLE_SUBSET_FILE_PATH=$LAUNCHABLE_SUBSET_FILE_PATH ==="
+                        cat subset-b.txt
+                        gradle test --no-daemon --rerun-tasks
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'echo "=== Tests actually executed (Approach B, legacy env var) ===" && ls build/test-results/test/*.xml 2>/dev/null | wc -l'
+                    junit 'build/test-results/test/*.xml'
+                }
+            }
+        }
     }
 }
