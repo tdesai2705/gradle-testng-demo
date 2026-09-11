@@ -172,6 +172,11 @@ spec:
             post {
                 always {
                     sh 'echo "=== Tests actually executed (Approach B, legacy env var) ===" && ls build/test-results/test/*.xml 2>/dev/null | wc -l'
+                    container('python') {
+                        withCredentials([string(credentialsId: 'smart-tests-token-ptsv2', variable: 'SMART_TESTS_TOKEN')]) {
+                            sh 'smart-tests record tests gradle --session @session-b.txt ./build/test-results/test/*.xml'
+                        }
+                    }
                     junit 'build/test-results/test/*.xml'
                 }
             }
